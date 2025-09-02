@@ -24,8 +24,8 @@ app.get('/',(req,res)=>{
             'GET - Consultar veículo': `${rootDomain}/api/veiculo`,
             'GET - Consultar todos os veículos': `${rootDomain}/api/veiculos`,
             'POST - Cadastrar veículo':`${rootDomain}/api/veiculo`,
-            'PUT - Alterar veículos': `${rootDomain}/api/veiculos`,
-            'DELETE - Deletar veículos': `${rootDomain}/api/veiculos`,
+            'PUT - Alterar veículos': `${rootDomain}/api/veiculo`,
+            'DELETE - Deletar veículos': `${rootDomain}/api/veiculo`,
 
         }
     });

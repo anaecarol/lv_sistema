@@ -6,8 +6,8 @@ const router = express.Router();
 router.get('/veiculo/:id', veiculo.consultarPorId);
 router.get('/veiculos',veiculo.consultar);
 router.post('/veiculo',veiculo.cadastrar);
-router.delete('/veiculo',veiculo.deletar);
-router.put('/veiculo',veiculo.alterar);
+router.delete('/veiculo/:id',veiculo.deletar);
+router.put('/veiculo/:id',veiculo.alterar);
 
 
 
