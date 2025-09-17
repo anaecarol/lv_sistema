@@ -1,18 +1,17 @@
-import express from 'express';
-import * as UsuarioController from '../controllers/usuario.js';
-import { middlewareAutenticacao } from '../controllers/token.js';
+import * as usuarioController from "../controllers/usuarioController.js";
+import autenticar from "../middlewares/autenticacao.js";
+import express from "express";
 
 const router = express.Router();
 
-// 🔓 públicas
-router.post('/login', UsuarioController.login);
-router.post('/cadastrar', UsuarioController.cadastrar);
-
-// 🔒 privadas
-router.get('/logado', middlewareAutenticacao, UsuarioController.consultarLogado);
-router.get('/:id', middlewareAutenticacao, UsuarioController.consultarPorId);
-router.put('/:id', middlewareAutenticacao, UsuarioController.alterar);
-router.delete('/:id', middlewareAutenticacao, UsuarioController.deletar);
-router.get('/', middlewareAutenticacao, UsuarioController.consultar);
+router.post("/usuario",                         usuarioController.cadastrar);
+router.post("/usuario/login",                   usuarioController.login);
+router.get("/usuarios",             autenticar, usuarioController.listar);
+router.get("/usuario/:id",          autenticar, usuarioController.buscarPorId);
+router.get("/usuario",              autenticar, usuarioController.buscarUsuarioLogado); // Buscar usuário logado
+router.get("/usuario/email/:email", autenticar, usuarioController.buscarPorEmail);
+router.patch("/usuario/:id",        autenticar, usuarioController.atualizar);
+router.put("/usuario/:id",          autenticar, usuarioController.atualizarTudo);
+router.delete("/usuario/:id",       autenticar, usuarioController.deletar);
 
 export default router;
