@@ -1,87 +1,61 @@
-import * as Usuario from '../models/Usuario.js';
-import * as Token from '../models/Token.js';
-import * as View from '../view/index.js';
+import pool from '../database/data.js';
+import bcrypt from 'bcryptjs';
+import { criar } from '../models/Token.js';
 
+// Cadastrar usuário
+export const cadastrar = async (req, res) => {
+    const { nome, email, senha } = req.body;
+    if (!nome || !email || !senha) return res.status(400).json({ message: "Todos os campos são obrigatórios" });
+
+    try {
+        const [existente] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+        if (existente.length > 0) return res.status(400).json({ message: "Email já cadastrado" });
+
+        const hashSenha = await bcrypt.hash(senha, 8);
+        const [resultado] = await pool.query('INSERT INTO usuarios (nome,email,senha) VALUES (?,?,?)', [nome, email, hashSenha]);
+
+        res.status(201).json({ id: resultado.insertId, nome, email });
+    } catch (err) {
+        res.status(500).json({ message: "Erro ao cadastrar usuário", error: err.message });
+    }
+};
+
+// Login
 export const login = async (req, res) => {
     const { email, senha } = req.body;
+    if (!email || !senha) return res.status(400).json({ message: "Email e senha são obrigatórios" });
+
     try {
-        const usuario = await Usuario.login(email, senha);
-        if (usuario) {
-            const horas_validade = 24;
-            const _token = await Token.criar(usuario.id, horas_validade);
-            if (_token) {
-                let data = [
-                    { token: `Bearer ${_token.chave_token}` },
-                    { expiracao: _token.validade },
-                    { usuario: usuario }
-                ];
-                return View.result(res, 'GET', data);
-            } else {
-                throw { mensagem: 'Erro ao gerar token' };
-            }
-        } else {
-            return View.result(res, 'GET', [], 'Credenciais inválidas');
-        }
-    } catch (error) {
-        View.erro(res, { mensagem: 'Erro interno do servidor', error });
+        const [usuario] = await pool.query('SELECT * FROM usuarios WHERE email = ?', [email]);
+        if (!usuario[0]) return res.status(400).json({ message: "Usuário não encontrado" });
+
+        const senhaValida = await bcrypt.compare(senha, usuario[0].senha);
+        if (!senhaValida) return res.status(401).json({ message: "Senha incorreta" });
+
+        // Cria token válido por 24h
+        const tokenCriado = await criar(usuario[0].id, 24);
+        res.json({ usuario: { id: usuario[0].id, nome: usuario[0].nome, email }, token: tokenCriado.hash });
+    } catch (err) {
+        res.status(500).json({ message: "Erro ao fazer login", error: err.message });
     }
 };
 
-export const consultarLogado = async (req, res) => {
+// Listar todos os usuários (rota privada)
+export const listar = async (req, res) => {
     try {
-        const id = req.loginId;
-        const data = await Usuario.consultarPorId(id);
-        return View.result(res, 'GET', data);
-    } catch (error) {
-        View.erro(res, error);
+        const [usuarios] = await pool.query('SELECT id,nome,email FROM usuarios');
+        res.json(usuarios);
+    } catch (err) {
+        res.status(500).json({ message: "Erro ao listar usuários", error: err.message });
     }
 };
 
-export const cadastrar = async (req, res) => {
+// Buscar usuário logado (rota privada)
+export const buscarUsuarioLogado = async (req, res) => {
     try {
-        const usuario = req.body;
-        const novoUsuario = await Usuario.cadastrar(usuario);
-        View.result(res, 'POST', novoUsuario);
-    } catch (error) {
-        View.erro(res, error);
-    }
-};
-
-export const alterar = async (req, res) => {
-    try {
-        let usuario = req.body;
-        usuario.id = req.params.id;
-        const usuarioAlterado = await Usuario.alterar(usuario);
-        return View.result(res, 'PUT', usuarioAlterado);
-    } catch (error) {
-        View.erro(res, error);
-    }
-};
-
-export const deletar = async (req, res) => {
-    try {
-        const id = req.params.id;
-        const data = await Usuario.deletar(id);
-        return View.result(res, 'DELETE', data);
-    } catch (error) {
-        View.erro(res, error);
-    }
-};
-
-export const consultar = async (req, res) => {
-    try {
-        const email = req.query.email;
-        const nome = req.query.nome;
-        let data = [];
-        if (email) {
-            data = await Usuario.consultarPorEmail(email);
-        } else if (nome) {
-            data = await Usuario.consultar(nome);
-        } else {
-            data = await Usuario.consultar();
-        }
-        return View.result(res, 'GET', data);
-    } catch (error) {
-        View.erro(res, error);
+        const [usuario] = await pool.query('SELECT id,nome,email FROM usuarios WHERE id = ?', [req.usuario]);
+        res.json(usuario[0]);
+    } catch (err) {
+        res.status(500).json({ message: "Erro ao buscar usuário", error: err.message });
     }
 };

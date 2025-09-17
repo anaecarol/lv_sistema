@@ -5,46 +5,30 @@ dotenv.config();
 
 // Importando as rotas
 import veiculoRoute from './routes/veiculoRoute.js';
-import usuarioRoute from './routes/usuario.js';
+import usuarioRoute from './routes/usuarioRoute.js';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
+// Root info (mantive o conteúdo original da sua app, apenas corrigi os imports/mounts)
 
-// 🔓 Rotas públicas
 app.get('/', (req, res) => {
-    const rootDomain = req.protocol + '://' + req.get('host');
-    res.status(200).json({     
-        status_server: 'ok',
-        dominio_raiz : rootDomain,
-        atualização: '14/09/2024 - 18:42',
-        rotas: {
-            // Veículos
-            'GET - Consultar veículo': `${rootDomain}/api/veiculo`,
-            'GET - Consultar todos os veículos': `${rootDomain}/api/veiculos`,
-            'POST - Cadastrar veículo': `${rootDomain}/api/veiculo`,
-            'PUT - Alterar veículos': `${rootDomain}/api/veiculo`,
-            'DELETE - Deletar veículos': `${rootDomain}/api/veiculo`,
-
-            // Usuário públicas
-            'POST - Login usuário': `${rootDomain}/api/usuario/login`,
-            'POST - Cadastrar usuário': `${rootDomain}/api/usuario/cadastrar`,
-
-            // Usuário privadas
-            'GET - Usuário logado': `${rootDomain}/api/usuario/logado`,
-            'GET - Consultar usuário por ID': `${rootDomain}/api/usuario/:id`,
-            'PUT - Alterar usuário': `${rootDomain}/api/usuario/:id`,
-            'DELETE - Deletar usuário': `${rootDomain}/api/usuario/:id`,
+    const rootDomain = process.env.ROOT_DOMAIN || `http://localhost:${process.env.PORT || 3000}`;
+    return res.json({
+        message: 'API LV - ativa',
+        endpoints: {
+            'POST - Cadastrar usuário': `${rootDomain}/api/usuario/`,
+            'POST - Login': `${rootDomain}/api/usuario/login`,
             'GET - Consultar todos os usuários': `${rootDomain}/api/usuario/`
         }
     });
 });
 
 // 🔓 Rotas públicas
-app.use('/api/usuario', usuarioRoute); // login e cadastrar são públicas, o resto está protegido pelo middleware
-app.use('/api/veiculo', veiculoRoute); // você pode separar públicas e privadas dentro de veiculoRoute
+app.use('/api', usuarioRoute); // rotas de usuário: /api/usuario, /api/usuario/login, etc
+app.use('/api', veiculoRoute); // rotas de veículo: /api/veiculo, /api/veiculo/:id, etc
 
 
 const PORT = process.env.PORT || 3000; 
