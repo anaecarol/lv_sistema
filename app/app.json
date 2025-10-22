@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "lv_mobile",
-    "slug": "lv_mobile",
+    "name": "lv-app",
+    "slug": "lv-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

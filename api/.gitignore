@@ -1,8 +1,0 @@
-# dependencies
-node_modules/
-
-# Ignore .env
-.env
-
-# Ignore images
-uploads/img/

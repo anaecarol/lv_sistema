@@ -1,7 +1,7 @@
 {
-  "name": "api_loja_veiculos",
+  "name": "api",
   "version": "1.0.0",
-  "description": "API sistema L-V",
+  "description": "API sistema",
   "main": "src/app.js",
   "type": "module",
   "scripts": {
@@ -18,7 +18,6 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.1",
     "mysql2": "^3.14.1"    
   },
   "devDependencies": {
