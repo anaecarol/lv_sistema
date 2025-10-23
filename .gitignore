@@ -40,3 +40,24 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+
+
+passos: passo 1: iniciar o back (api)
+# Terminal 1 - Backend
+cd /workspaces/lv_sistema
+docker-compose up -d api db 
+
+# Testar a API
+curl http://localhost:3000/
+# Ver logs se precisar
+docker-compose logs api
+
+passo 2: abrir o app 
+# Terminal 2 - Frontend  
+cd /workspaces/lv_sistema/app
+npx expo start --web
+
+passo 3: iniciar tudo 
+cd /workspaces/lv_sistema
+docker-compose up -d
