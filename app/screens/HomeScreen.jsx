@@ -1,72 +1,64 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, Button, StyleSheet, Alert } from 'react-native';
+import * as userService from '../services/userService';
+import * as authService from '../services/authService';
 
-// Ajuste conforme seu ambiente (mesma variável usada no LoginScreen)
-const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL_API;
+export default function Home({ navigation }) {
+  const [usuario, setUsuario] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-export default function HomeScreen({ navigation }) {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            try {
-                const token = await AsyncStorage.getItem('token');
-                console.log('Token encontrado:', token);
-                if (!token) {
-                    // sem token, volta para o login
-                    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-                    return;
-                }
-                // Obtendo usuário armazenado na key usuario do AsyncStorage
-                
-                const userLogin = await AsyncStorage.getItem('usuario');
-
-                setUser(JSON.parse(userLogin));
-
-            } catch (e) {
-                console.log('Erro ao obter usuário:', e.message);
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        })();
-
-        return () => { mounted = false; };
-    }, [navigation]);
-
-    async function handleLogout() {
-        try {
-            await AsyncStorage.removeItem('token');
-            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
-        } catch (e) {
-            Alert.alert('Erro', 'Não foi possível sair.');
-        }
+  useEffect(() => {
+    let mounted = true;
+    async function loadUser() {
+      try {
+        const u = await userService.getCurrentUser();
+        if (mounted) setUsuario(u);
+      } catch (e) {
+        Alert.alert('Erro', e.message || 'Falha ao carregar usuário');
+      } finally {
+        if (mounted) setLoading(false);
+      }
     }
+    loadUser();
+    return () => { mounted = false; };
+  }, []);
 
-    if (loading) {
-        return (
-            <View style={styles.container}>
-                <ActivityIndicator size="large" />
-            </View>
-        );
+  async function handleLogout() {
+    try {
+      await authService.logout();
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    } catch (e) {
+      Alert.alert('Erro', e.message || 'Falha ao sair');
     }
+  }
 
-    const displayName = user?.nome || user?.email || 'usuário';
-    console.log('Usuário logado:', user);
+  if (loading) {
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Bem-vindo, {displayName}!</Text>
-            <Text style={styles.subtitle}>Você está logado com sucesso.</Text>
-            <View style={{ height: 12 }} />
-            <Button title="Sair" onPress={handleLogout} />
-        </View>
+      <View style={styles.container}>
+        <Text style={styles.title}>Carregando...</Text>
+      </View>
     );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Bem-vindo{usuario?.nome ? `, ${usuario.nome}` : ''}!</Text>
+      {usuario && (
+        <View style={styles.infoBox}>
+          <Text style={styles.label}>Email:</Text>
+          <Text style={styles.value}>{usuario.email}</Text>
+        </View>
+      )}
+      <View style={{ height: 12 }} />
+      <Button title="Sair" onPress={handleLogout} color="#c00" />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center' },
-    title: { fontSize: 24, marginBottom: 8, textAlign: 'center' },
-    subtitle: { fontSize: 16, color: '#555', textAlign: 'center' }
+  container: { flex: 1, padding: 20, justifyContent: 'center' },
+  title: { fontSize: 24, marginBottom: 12, textAlign: 'center' },
+  infoBox: { padding: 12, borderRadius: 8, backgroundColor: '#f2f2f2' },
+  label: { fontWeight: '600' },
+  value: { marginTop: 4 }
 });

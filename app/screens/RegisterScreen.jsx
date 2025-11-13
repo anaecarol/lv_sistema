@@ -1,40 +1,32 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, Alert } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Text, Alert, ActivityIndicator } from 'react-native';
+import * as userService from '../services/userService';
 
-// Ajuste conforme seu ambiente (ver observações acima)
-const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL_API;
-
-export default function RegisterScreen({ navigation }) {
+export default function Register({ navigation }) {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [cargo, setCargo] = useState('');
-  const [avatar, setAvatar] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
+    if (!nome || !email || !senha) {
+      Alert.alert('Aviso', 'Preencha todos os campos.');
+      return;
+    }
     setLoading(true);
     try {
-      const res = await fetch(`${BASE_URL}/usuario`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, email, senha, cargo, avatar })
-      });
-      const json = await res.json();
-      if (json.success) {
-        Alert.alert('Sucesso', json.message, [{ text: 'OK', onPress: () => navigation.navigate('Login') }]);
-        alert('Sucesso', json.message);
+      const res = await userService.register({ nome: nome.trim(), email: email.trim(), senha });
+      if (res && res.success) {
+        Alert.alert('Sucesso', res.message || 'Conta criada');
         setNome('');
         setEmail('');
         setSenha('');
-        setCargo('');
-        setAvatar('');
         navigation.navigate('Login');
       } else {
-        Alert.alert('Erro', json.message || 'Falha no cadastro');
+        Alert.alert('Erro', (res && res.message) || 'Falha ao criar conta');
       }
     } catch (e) {
-      Alert.alert('Erro', e.message);
+      Alert.alert('Erro', e.message || 'Erro ao criar conta');
     } finally {
       setLoading(false);
     }
@@ -42,15 +34,37 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Cadastro</Text>
-      <TextInput placeholder="Nome" value={nome} onChangeText={setNome} style={styles.input} />
-      <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input} autoCapitalize="none" keyboardType="email-address" />
-      <TextInput placeholder="Senha" value={senha} onChangeText={setSenha} style={styles.input} secureTextEntry />
-      <TextInput placeholder="Cargo" value={cargo} onChangeText={setCargo} style={styles.input} />
-      <TextInput placeholder="Avatar (nome do arquivo)" value={avatar} onChangeText={setAvatar} style={styles.input} />
-      <Button title={loading ? 'Cadastrando...' : 'Cadastrar'} onPress={handleRegister} />
+      <Text style={styles.title}>Criar conta</Text>
+      <TextInput
+        placeholder="Nome"
+        value={nome}
+        onChangeText={setNome}
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        style={styles.input}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
+      <TextInput
+        placeholder="Senha"
+        value={senha}
+        onChangeText={setSenha}
+        style={styles.input}
+        secureTextEntry
+      />
+      <View style={{ marginTop: 8 }}>
+        {loading ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <Button title="Registrar" onPress={handleRegister} />
+        )}
+      </View>
       <View style={{ height: 12 }} />
-      <Button title="Entrar" onPress={() => navigation.navigate('Login')} />
+      <Button title="Voltar para login" onPress={() => navigation.navigate('Login')} />
     </View>
   );
 }

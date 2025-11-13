@@ -1,24 +1,52 @@
-const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL_API;
-import { Alert } from 'react-native';
+import * as storageService from './storageService';
 
-/** Cadastra um novo usuário */
-export async function registerUser({ nome, email, senha, cargo, avatar }) {
+// Ajuste conforme seu ambiente (variável de ambiente definida no bundler/expo)
+const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL_API || '';
+
+async function requestJson(url, options = {}) {
+  const res = await fetch(url, options);
+  const json = await res.json().catch(() => ({ success: false, message: 'Resposta inválida do servidor' }));
+  if (!res.ok) {
+    const msg = json && json.message ? json.message : `HTTP ${res.status}`;
+    return { success: false, message: msg, status: res.status, data: json.data };
+  }
+  return json;
+}
+
+export async function register({ nome, email, senha }) {
+  if (!BASE_URL) throw new Error('BASE_URL não configurada');
+  const url = `${BASE_URL}/usuario/register`;
+  return await requestJson(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, email, senha })
+  });
+}
+
+export async function getCurrentUser() {
+  // lê usuário salvo localmente
   try {
-    const res = await fetch(`${BASE_URL}/usuario`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, email, senha, cargo, avatar }),
-    });
-    const json = await res.json();
-    if (json.success) {
-      Alert.alert('Sucesso', json.message);
-      return { success: true, message: json.message };
-    } else {
-      Alert.alert('Erro', json.message || 'Falha no cadastro');
-      return { success: false, message: json.message };
-    }
+    const u = await storageService.getItem('usuario');
+    return u;
   } catch (e) {
-    Alert.alert('Erro', e.message);
-    return { success: false, message: e.message };
+    throw new Error('Falha ao obter usuário local: ' + (e.message || e));
   }
 }
+
+export async function fetchProfile() {
+  // Exemplo: se precisar buscar perfil no servidor usando token
+  if (!BASE_URL) throw new Error('BASE_URL não configurada');
+  const token = await storageService.getItem('token');
+  if (!token) throw new Error('Token não encontrado');
+  const url = `${BASE_URL}/usuario/profile`;
+  return await requestJson(url, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+}
+
+export default {
+  register,
+  getCurrentUser,
+  fetchProfile
+};

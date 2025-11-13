@@ -1,39 +1,55 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
+import * as storageService from './storageService';
 
-const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL_API;
+// Ajuste conforme seu ambiente (variável de ambiente definida no bundler/expo)
+const BASE_URL = process.env.EXPO_PUBLIC_BASE_URL_API || '';
 
-/** Faz login do usuário e retorna dados */
-export async function loginUser(email, senha) {
-  try {
-    const res = await fetch(`${BASE_URL}/usuario/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, senha }),
-    });
-    const json = await res.json();
-    if (json.success) {
-      await AsyncStorage.setItem('token', json.data.token);
-      await AsyncStorage.setItem('usuario', JSON.stringify(json.data.usuario));
-      return { success: true, message: json.message, usuario: json.data.usuario };
-    } else {
-      Alert.alert('Erro', json.message || 'Login falhou');
-      return { success: false, message: json.message };
+async function postJson(url, body, token) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body)
+  });
+  const json = await res.json().catch(() => ({ success: false, message: 'Resposta inválida do servidor' }));
+  if (!res.ok) {
+    // Tenta propagar mensagem do servidor
+    const msg = json && json.message ? json.message : `HTTP ${res.status}`;
+    return { success: false, message: msg, status: res.status, data: json.data };
+  }
+  return json;
+}
+
+export async function login(email, senha) {
+  if (!BASE_URL) throw new Error('BASE_URL não configurada');
+  const url = `${BASE_URL}/usuario/login`;
+  const resp = await postJson(url, { email, senha });
+  if (resp && resp.success && resp.data) {
+    // armazena token e usuário localmente
+    try {
+      await storageService.setItem('token', resp.data.token);
+      await storageService.setItem('usuario', resp.data.usuario || {});
+    } catch (e) {
+      // não impede o login, mas garante que o erro seja conhecido
+      console.warn('Falha ao salvar dados locais após login:', e);
     }
+  }
+  return resp;
+}
+
+export async function logout() {
+  // Opcional: informar servidor sobre logout se existir endpoint
+  // Aqui apenas limpa o armazenamento local
+  try {
+    await storageService.removeItem('token');
+    await storageService.removeItem('usuario');
+    return true;
   } catch (e) {
-    Alert.alert('Erro', e.message);
-    return { success: false, message: e.message };
+    throw new Error('Falha ao deslogar: ' + (e.message || e));
   }
 }
 
-/** Faz logout limpando o token */
-export async function logoutUser() {
-  try {
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('usuario');
-    return true;
-  } catch {
-    Alert.alert('Erro', 'Não foi possível sair.');
-    return false;
-  }
-}
+export default {
+  login,
+  logout
+};
